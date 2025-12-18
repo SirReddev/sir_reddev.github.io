@@ -4,36 +4,39 @@
 <meta charset="utf-8">
 <title>Chatbox Generator (English)</title>
 <style type="text/css">
-    body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: #fff; padding: 20px; display: flex; justify-content: center; }
-    .container { width: 100%; max-width: 800px; background: #252525; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-    h2 { margin-top: 0; color: #3a64ff; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: #fff; padding: 20px; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 850px; background: #252525; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; }
+    h2 { margin-top: 0; color: #3a64ff; font-weight: 300; letter-spacing: 1px; }
     #cbin, #cbout {
         width: 100%;
-        height: 200px;
-        background: #111;
-        color: #00ff00;
+        height: 220px;
+        background: #0f0f0f;
+        color: #e0e0e0;
         border: 1px solid #444;
-        padding: 12px;
-        font-family: 'Consolas', 'Monaco', monospace;
+        padding: 15px;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
         box-sizing: border-box;
-        border-radius: 4px;
+        border-radius: 6px;
         resize: vertical;
+        font-size: 14px;
+        line-height: 1.5;
     }
-    #cbout { color: #00d4ff; }
+    #cbout { color: #00d4ff; background: #0a0a0a; border-color: #222; }
     button {
-        padding: 12px 24px;
+        padding: 14px 28px;
         background: #3a64ff;
         color: white;
         border: none;
-        border-radius: 4px;
+        border-radius: 6px;
         cursor: pointer;
-        margin: 15px 0;
+        margin: 20px 0;
         font-weight: bold;
         font-size: 1rem;
+        transition: background 0.2s;
     }
     button:hover { background: #5579ff; }
-    .hint { background: #333; padding: 15px; border-radius: 4px; margin-bottom: 15px; border-left: 4px solid #3a64ff; font-size: 0.9em; line-height: 1.5; }
-    code { background: #000; padding: 2px 4px; border-radius: 3px; color: #ff94d1; }
+    .hint { background: #2d2d2d; padding: 15px; border-radius: 6px; margin-bottom: 20px; border-left: 5px solid #3a64ff; font-size: 0.9em; color: #ccc; }
+    code { background: #000; padding: 2px 5px; border-radius: 4px; color: #ff94d1; font-family: monospace; }
 </style>
 </head>
 <body>
@@ -42,29 +45,30 @@
     <h2>Chatbox Function Generator</h2>
     
     <div class="hint">
-        <b>Formatting Guide:</b><br>
-        • <b>New Page:</b> Press <code>Enter</code> to start a new text page.<br>
-        • <b>Colors:</b> Use <code>%c=FF5555%</code> (Red), <code>%c=55FF55%</code> (Green), etc.<br>
-        • <b>Delay:</b> Use <code>%s=20%</code> to pause for 20 ticks.<br>
-        • <b>Bold:</b> Use <code>%b=true%</code> or <code>%b=false%</code>.<br>
-        • <b>Mix:</b> <code>%c=FFAAAA,s=10%Your Text</code>
+        <b>Quick Tips:</b><br>
+        • <b>New Page:</b> Hit <code>Enter</code> to create a page break (Next:1b).<br>
+        • <b>Colors:</b> <code>%c=FF3A3A%</code> applies to everything until the next color tag.<br>
+        • <b>Bold:</b> <code>%b=true%</code> to turn on, <code>%b=false%</code> to turn off.<br>
+        • <b>Delay:</b> <code>%s=10%</code> adds a pause before the next character appears.<br>
     </div>
 
     <form name="form" id="form">
-        <textarea id="cbin" placeholder="Enter text here...">%c=FF3A3A%Red is destruction.
+        <label style="display:block; margin-bottom: 8px; color: #888;">Input Text:</label>
+        <textarea id="cbin" placeholder="Example: %c=FF3A3A%Red is destruction.\n%c=3A64FF%Blue is indifference.">%c=FF3A3A%Red is destruction.
 %c=3A64FF,s=20%Blue is indifference.
 %c=FFFFFF,b=true%Bold White!</textarea>
         
         <button type="button" onclick="document.getElementById('cbout').value = ChatboxCommandOutput(document.getElementById('cbin').value)">
-            Generate Command
+            Generate Minecraft Command
         </button>
         
+        <label style="display:block; margin-bottom: 8px; color: #888;">Output Command:</label>
         <textarea id="cbout" readonly placeholder="The Minecraft command will appear here..."></textarea>
     </form>
 </div>
 
 <script>
-    // Character Width Table
+    // Character Width Database
     var six = ["~"];
     var five = ["f","k","“","”"];
     var four = ["I","t","\""," ","(",")","[","]"];
@@ -92,77 +96,73 @@
         return false;
     }
 
-    function Attribute(c, i) {
-        var out = "";
-        var tagContent = "";
-        
-        while(i < c.length && c[i] != "%") {
-            tagContent += c[i];
-            i++;
-        }
-
-        var params = tagContent.split(",");
-        var colorVal = null;
-        var delayVal = null;
-        var isBold = null;
-
-        params.forEach(param => {
-            if(param.startsWith("b=")) {
-                let val = param.split("=")[1];
-                isBold = (val === "true");
-                boldflag = isBold ? 2 : 0;
-            }
-            if(param.startsWith("s=")) {
-                delayVal = param.split("=")[1];
-            }
-            if(param.startsWith("c=")) {
-                colorVal = param.split("=")[1].toUpperCase();
-            }
-        });
-
-        // Add Delay to NBT
-        if(delayVal) {
-            out += "Delay:" + delayVal;
-        }
-
-        // Add Format (Color/Bold) to NBT
-        // Removed outer quotes and escaped inner quotes so Minecraft reads as an object
-        if(colorVal || isBold !== null) {
-            if(out !== "") out += ",";
-            let formatStr = 'Format:{text:\\"\\"';
-            if(colorVal) formatStr += ',color:\\"#' + colorVal + '\\"';
-            if(isBold !== null) formatStr += ',bold:' + (isBold ? 'true' : 'false');
-            formatStr += '}';
-            out += formatStr;
-        }
-        
-        return out;
-    }
-
     function ChatboxCommandOutput(input) {
         boldflag = 0;
         var out = "function chatbox:bossbar/clear/with_all\ndata modify storage chatbox:main Buffer set value [";
         var chs = input.split("");
         var elements = [];
 
+        // Formatting state trackers
+        var activeColor = null;
+        var activeBold = null;
+        var pendingDelay = null;
+
         for(var i = 0; i < chs.length; i++) {
             if(chs[i] == "\r") continue;
             
             if(chs[i] == "\n") {
                 elements.push("{Next:1b}");
-            } else if(chs[i] == "%") {
-                var extra = Attribute(chs, i + 1);
-                i++; // skip the start %
-                while(i < chs.length && chs[i] != "%") i++;
-                i++; // move to the character after the end %
-                
-                if(i < chs.length) {
-                    var charVal = chs[i] == "\"" ? "\\\"" : chs[i];
-                    elements.push(`{Char:"${charVal}",Length:${GetLen(chs[i])}${extra ? "," + extra : ""}}`);
+            } 
+            else if(chs[i] == "%") {
+                // Parse the formatting tag
+                let tagContent = "";
+                i++; // skip opening %
+                while(i < chs.length && chs[i] != "%") {
+                    tagContent += chs[i];
+                    i++;
                 }
-            } else {
-                var charVal = chs[i] == "\"" ? "\\\"" : chs[i];
-                elements.push(`{Char:"${charVal}",Length:${GetLen(chs[i])}}`);
+                // i is now at closing %
+
+                let params = tagContent.split(",");
+                params.forEach(param => {
+                    let parts = param.split("=");
+                    let key = parts[0].trim();
+                    let val = parts[1] ? parts[1].trim() : "";
+
+                    if(key === "c") activeColor = val.toUpperCase();
+                    if(key === "b") {
+                        activeBold = (val === "true");
+                        boldflag = activeBold ? 2 : 0;
+                    }
+                    if(key === "s") pendingDelay = val;
+                });
+                // Note: We don't create an element yet. 
+                // The formatting applies to the next actual text character.
+            } 
+            else {
+                // Process a text character
+                let charVal = chs[i] == "\"" ? "\\\"" : chs[i];
+                let charLen = GetLen(chs[i]);
+                
+                // Start Object
+                let nbt = `{Char:"${charVal}",Length:${charLen}`;
+
+                // Apply persistent Delay (one-time use)
+                if(pendingDelay) {
+                    nbt += `,Delay:${pendingDelay}`;
+                    pendingDelay = null;
+                }
+
+                // Apply persistent Format (Color/Bold)
+                if(activeColor || activeBold !== null) {
+                    nbt += `,Format:{text:\\"\\"`;
+                    if(activeColor) nbt += `,color:\\"#${activeColor}\\"`;
+                    if(activeBold !== null) nbt += `,bold:${activeBold ? 'true' : 'false'}`;
+                    nbt += `}`;
+                }
+
+                nbt += `}`;
+                elements.push(nbt);
             }
         }
         
