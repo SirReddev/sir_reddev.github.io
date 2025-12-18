@@ -2,178 +2,148 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Chatbox Generator</title>
-<link rel="shortcut icon" type="image/x-icon" href="images/ppados.ico">
+<title>Chatbox Generator (English)</title>
 <style type="text/css">
-    #cbin {
-        width: 512px;
-        height: 256px;
+    body { font-family: sans-serif; background: #222; color: #fff; padding: 20px; }
+    #cbin, #cbout {
+        width: 100%;
+        max-width: 600px;
+        height: 200px;
+        background: #333;
+        color: #fff;
+        border: 1px solid #555;
+        padding: 10px;
+        font-family: monospace;
     }
-
-    #cbout {
-        width: 512px;
-        height: 256px;
+    button {
+        padding: 10px 20px;
+        background: #3a64ff;
+        color: white;
+        border: none;
+        cursor: pointer;
+        margin: 10px 0;
     }
+    button:hover { background: #5579ff; }
+    .hint { color: #bbb; font-size: 0.9em; }
 </style>
 </head>
 <body>
-<script>
-    var six= [
-			"~"
-	];
-	var five= [
-			"f","k","“","”"
-            ];
-	var four= [
-			"I","t","\""," ","(",")","[","]"
-            ];
-	var three= [
-			"l",
-            ];
-	var two= [
-			"i",".",",","\"",":","!"
-            ];
 
-	var boldflag = 0;
-	var boldoffset = 0;
+<h2>Chatbox Generator</h2>
+<div class="hint">
+    <b>Instructions:</b><br>
+    • New Line: Use Enter to trigger <code>{Next:1b}</code><br>
+    • Colors: <code>%c=FF5555%</code> (HEX code)<br>
+    • Delays: <code>%s=20%</code> (Pause in game ticks)<br>
+    • Bold: <code>%b=true%</code> or <code>%b=false%</code><br>
+    • Combined: <code>%c=FFAAAA,s=10,b=true%</code>
+</div>
+
+<form name="form" id="form">
+<textarea id="cbin">
+%c=FF3A3A%Red is destruction.
+%c=3A64FF,s=20%Blue is indifference.
+%c=FFFFFF,b=true%Bold White!
+</textarea>
+<br>
+<button type="button" onclick="document.getElementById('cbout').value = ChatboxCommandOutput(document.getElementById('cbin').value)">
+    Generate Command
+</button>
+<br>
+<textarea id="cbout" readonly placeholder="Command will appear here..."></textarea>
+</form>
+
+<script>
+    var six = ["~"];
+    var five = ["f","k","“","”"];
+    var four = ["I","t","\""," ","(",")","[","]"];
+    var three = ["l"];
+    var two = ["i",".",",","\"",":","!"];
+
+    var boldflag = 0;
 
     function GetLen(c) {
-		var out = 9;
+        var out = 9;
         if(c.charCodeAt() < 128) {
-        	if(Ifin(c,six)) out = 6;
-        	else if(Ifin(c,five)) out = 5;
-        	else if(Ifin(c,four)) out = 4;
-        	else if(Ifin(c,three)) out = 3;
-        	else if(Ifin(c,two)) out = 2;
-        	else out = 6;
-
-			out += boldflag;
+            if(Ifin(c,six)) out = 6;
+            else if(Ifin(c,five)) out = 5;
+            else if(Ifin(c,four)) out = 4;
+            else if(Ifin(c,three)) out = 3;
+            else if(Ifin(c,two)) out = 2;
+            else out = 6;
+            out += boldflag;
         }
-        return out;	
-	}
+        return out;    
+    }
 
     function Ifin(x, y) {
-		var flag = false;
-		for(var i = 0;i < y.length; i++) if(x == y[i]) flag = true;
-		return flag;
-	}
+        for(var i = 0; i < y.length; i++) if(x == y[i]) return true;
+        return false;
+    }
 
-    function Attribute(c, i)
-	{
-		var out = "";
-		var i_ = i;
+    function Attribute(c, i) {
+        var out = "";
+        var start = i;
+        var tagContent = "";
+        
+        while(i < c.length && c[i] != "%") {
+            tagContent += c[i];
+            i++;
+        }
 
-		while(i <= c.length && c[i] != "%") {
-			if(c[i] == "b" && c[i + 1] == "=") {
-				var value = "";
-				i = i + 2;
-				while(i <= c.length && c[i] != "%" && c[i] != ",") {
-					value = value + c[i];
-					i++;
-				}
-				if(value == "true") {
-					boldflag = 2;
-					boldoffset = 1;
-				}
-				else {
-					boldflag = -1;
-					boldoffset = 0;
-				}
-			}
-			else i++;
-		}
+        var params = tagContent.split(",");
+        params.forEach(param => {
+            if(param.startsWith("b=")) {
+                let val = param.split("=")[1];
+                boldflag = (val === "true") ? 2 : -1;
+            }
+            if(param.startsWith("s=")) {
+                let val = param.split("=")[1];
+                out += (out ? "," : "") + "Delay:" + val;
+            }
+            if(param.startsWith("c=")) {
+                let val = param.split("=")[1].toUpperCase();
+                let format = `{"text":"","color":"#${val}"`;
+                if(boldflag == 2) { format += `,"bold":true`; boldflag = 1; }
+                else if(boldflag == -1) { format += `,"bold":false`; boldflag = 0; }
+                format += `}`;
+                out += (out ? "," : "") + "Format:'" + format + "'";
+            }
+        });
 
-		i = i_;
-
-		while(i <= c.length && c[i] != "%") {
-			if(c[i] == "s" && c[i + 1] == "=") {
-				var value = "";
-				i = i + 2;
-				while(i <= c.length && c[i] <= "9" && c[i] >= "0") {
-					value = value + c[i];
-					i++;
-				}
-				out = out + "Delay:" + value;
-				if(i <= c.length && c[i] != "%") out = out + ",";
-			}
-			else if(c[i] == "c" && c[i + 1] == "=") {
-				var value = "";
-				i = i + 2;
-				while(i <= c.length && (( c[i] <= "9" && c[i] >= "0" ) || ( c[i] <= "Z" && c[i] >= "A" ))) {
-					value = value + c[i];
-					i++;
-				}
-				if(boldflag == 2){
-					out = out + "Format:'{\"text\":\"\",\"bold\":true,\"color\":\"#" + value + "\"}'";
-					boldflag = 1;
-				}
-				else if(boldflag == -1){
-					out = out + "Format:'{\"text\":\"\",\"bold\":false,\"color\":\"#" + value + "\"}'";
-					boldflag = 0;
-				}
-				else out = out + "Format:'{\"text\":\"\",\"color\":\"#" + value + "\"}'";
-
-				if(i <= c.length && c[i] != "%") out = out + ",";
-			}
-			else i++;
-		}
-		if(boldflag == 2){
-			out = out + "Format:'{\"text\":\"\",\"bold\":true}'";
-			boldflag = 1;
-		}
-		else if(boldflag == -1){
-			out = out + "Format:'{\"text\":\"\",\"bold\":false}'";
-			boldflag = 0;
-		}
-		return out;
-	}
+        if(boldflag == 2) { out += (out ? "," : "") + "Format:'{\"text\":\"\",\"bold\":true}'"; boldflag = 1; }
+        else if(boldflag == -1) { out += (out ? "," : "") + "Format:'{\"text\":\"\",\"bold\":false}'"; boldflag = 0; }
+        
+        return out;
+    }
 
     function ChatboxCommandOutput(input) {
-		boldflag = 0;
-	    boldoffset = 0;
-
+        boldflag = 0;
         var out = "function chatbox:bossbar/clear/with_all\ndata modify storage chatbox:main Buffer set value [";
         var chs = input.split("");
-		for( var i = 0; i < chs.length; i++)
-		{
-            var peri = "";
-			if(chs[i] == "\r") i++;
-			if(chs[i] == "\n") peri = "{Next:1b}";
-			else if(chs[i] == "\"") peri = "{Char:\"" + "\\\"" + "\",Length:" + GetLen(chs[i]) + "}";
-			else if(chs[i] == "%") {
-                var extra = Attribute(chs,i + 1);
-				i++;
-				while(i <= chs.length && chs[i] != "%") i++;
-				i++;
-				peri = "{Char:\"" + chs[i] + "\",Length:" + GetLen(chs[i]) + "," + extra + "}";
-			}
-			else peri = "{Char:\"" + chs[i] + "\",Length:" + GetLen(chs[i]) + "}";
-			out = out + peri;
-			if(i < chs.length - 1) out = out + ",";
-			else out = out + "]";
+        var elements = [];
 
-			boldoffset = 0;
-		}
-		out += "\nscoreboard players set #chatbox.text.timer loy.value 0"
-		return out;
+        for(var i = 0; i < chs.length; i++) {
+            if(chs[i] == "\r") continue;
+            if(chs[i] == "\n") {
+                elements.push("{Next:1b}");
+            } else if(chs[i] == "%") {
+                var extra = Attribute(chs, i + 1);
+                while(i < chs.length && chs[i+1] != "%") i++;
+                i += 2; // skip the closing %
+                if(i < chs.length) {
+                    var charVal = chs[i] == "\"" ? "\\\"" : chs[i];
+                    elements.push(`{Char:"${charVal}",Length:${GetLen(chs[i])}${extra ? "," + extra : ""}}`);
+                }
+            } else {
+                var charVal = chs[i] == "\"" ? "\\\"" : chs[i];
+                elements.push(`{Char:"${charVal}",Length:${GetLen(chs[i])}}`);
+            }
+        }
+        
+        out += elements.join(",") + "]\nscoreboard players set #chatbox.text.timer loy.value 0";
+        return out;
     }
 </script>
-<form name="form" id="form" method="post">
-<textarea name="ChatBoxInput" id="cbin">
-在这里输入文本
-
-使文本带上颜色: "默认颜色为白色%c=FFAAAA%但后边的这些文本是红色的"
-使文本在固定事件后播放:"这段话说完后会暂停20个游戏刻%s=20%再播放这句话"
-两个效果同时使用："你%c=FFAAAA,s=10%好"
-</textarea>
-</br>
-<button type="button" onclick="document.getElementById('cbout').value = ChatboxCommandOutput(document.getElementById('cbin').value)">
-    生成命令
-</button>
-</br>
-<textarea name="ChatBoxOutput" id="cbout">
-命令将在这里输出
-</textarea>
-</form>
 </body>
 </html>
