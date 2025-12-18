@@ -4,56 +4,67 @@
 <meta charset="utf-8">
 <title>Chatbox Generator (English)</title>
 <style type="text/css">
-    body { font-family: sans-serif; background: #222; color: #fff; padding: 20px; }
+    body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: #fff; padding: 20px; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 800px; background: #252525; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    h2 { margin-top: 0; color: #3a64ff; }
     #cbin, #cbout {
         width: 100%;
-        max-width: 600px;
         height: 200px;
-        background: #333;
-        color: #fff;
-        border: 1px solid #555;
-        padding: 10px;
-        font-family: monospace;
+        background: #111;
+        color: #00ff00;
+        border: 1px solid #444;
+        padding: 12px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        box-sizing: border-box;
+        border-radius: 4px;
+        resize: vertical;
     }
+    #cbout { color: #00d4ff; }
     button {
-        padding: 10px 20px;
+        padding: 12px 24px;
         background: #3a64ff;
         color: white;
         border: none;
+        border-radius: 4px;
         cursor: pointer;
-        margin: 10px 0;
+        margin: 15px 0;
+        font-weight: bold;
+        font-size: 1rem;
     }
     button:hover { background: #5579ff; }
-    .hint { color: #bbb; font-size: 0.9em; }
+    .hint { background: #333; padding: 15px; border-radius: 4px; margin-bottom: 15px; border-left: 4px solid #3a64ff; font-size: 0.9em; line-height: 1.5; }
+    code { background: #000; padding: 2px 4px; border-radius: 3px; color: #ff94d1; }
 </style>
 </head>
 <body>
 
-<h2>Chatbox Generator</h2>
-<div class="hint">
-    <b>Instructions:</b><br>
-    • New Line: Use Enter to trigger <code>{Next:1b}</code><br>
-    • Colors: <code>%c=FF5555%</code> (HEX code)<br>
-    • Delays: <code>%s=20%</code> (Pause in game ticks)<br>
-    • Bold: <code>%b=true%</code> or <code>%b=false%</code><br>
-    • Combined: <code>%c=FFAAAA,s=10,b=true%</code>
+<div class="container">
+    <h2>Chatbox Function Generator</h2>
+    
+    <div class="hint">
+        <b>Formatting Guide:</b><br>
+        • <b>New Page:</b> Press <code>Enter</code> to start a new text page.<br>
+        • <b>Colors:</b> Use <code>%c=FF5555%</code> (Red), <code>%c=55FF55%</code> (Green), etc.<br>
+        • <b>Delay:</b> Use <code>%s=20%</code> to pause for 20 ticks.<br>
+        • <b>Bold:</b> Use <code>%b=true%</code> or <code>%b=false%</code>.<br>
+        • <b>Mix:</b> <code>%c=FFAAAA,s=10%Your Text</code>
+    </div>
+
+    <form name="form" id="form">
+        <textarea id="cbin" placeholder="Enter text here...">%c=FF3A3A%Red is destruction.
+%c=3A64FF,s=20%Blue is indifference.
+%c=FFFFFF,b=true%Bold White!</textarea>
+        
+        <button type="button" onclick="document.getElementById('cbout').value = ChatboxCommandOutput(document.getElementById('cbin').value)">
+            Generate Command
+        </button>
+        
+        <textarea id="cbout" readonly placeholder="The Minecraft command will appear here..."></textarea>
+    </form>
 </div>
 
-<form name="form" id="form">
-<textarea id="cbin">
-%c=FF3A3A%Red is destruction.
-%c=3A64FF,s=20%Blue is indifference.
-%c=FFFFFF,b=true%Bold White!
-</textarea>
-<br>
-<button type="button" onclick="document.getElementById('cbout').value = ChatboxCommandOutput(document.getElementById('cbin').value)">
-    Generate Command
-</button>
-<br>
-<textarea id="cbout" readonly placeholder="Command will appear here..."></textarea>
-</form>
-
 <script>
+    // Character Width Table
     var six = ["~"];
     var five = ["f","k","“","”"];
     var four = ["I","t","\""," ","(",")","[","]"];
@@ -83,7 +94,6 @@
 
     function Attribute(c, i) {
         var out = "";
-        var start = i;
         var tagContent = "";
         
         while(i < c.length && c[i] != "%") {
@@ -92,27 +102,39 @@
         }
 
         var params = tagContent.split(",");
+        var colorVal = null;
+        var delayVal = null;
+        var isBold = null;
+
         params.forEach(param => {
             if(param.startsWith("b=")) {
                 let val = param.split("=")[1];
-                boldflag = (val === "true") ? 2 : -1;
+                isBold = (val === "true");
+                boldflag = isBold ? 2 : 0;
             }
             if(param.startsWith("s=")) {
-                let val = param.split("=")[1];
-                out += (out ? "," : "") + "Delay:" + val;
+                delayVal = param.split("=")[1];
             }
             if(param.startsWith("c=")) {
-                let val = param.split("=")[1].toUpperCase();
-                let format = `{"text":"","color":"#${val}"`;
-                if(boldflag == 2) { format += `,"bold":true`; boldflag = 1; }
-                else if(boldflag == -1) { format += `,"bold":false`; boldflag = 0; }
-                format += `}`;
-                out += (out ? "," : "") + "Format:'" + format + "'";
+                colorVal = param.split("=")[1].toUpperCase();
             }
         });
 
-        if(boldflag == 2) { out += (out ? "," : "") + "Format:'{\"text\":\"\",\"bold\":true}'"; boldflag = 1; }
-        else if(boldflag == -1) { out += (out ? "," : "") + "Format:'{\"text\":\"\",\"bold\":false}'"; boldflag = 0; }
+        // Add Delay to NBT
+        if(delayVal) {
+            out += "Delay:" + delayVal;
+        }
+
+        // Add Format (Color/Bold) to NBT
+        // Removed outer quotes and escaped inner quotes so Minecraft reads as an object
+        if(colorVal || isBold !== null) {
+            if(out !== "") out += ",";
+            let formatStr = 'Format:{text:\\"\\"';
+            if(colorVal) formatStr += ',color:\\"#' + colorVal + '\\"';
+            if(isBold !== null) formatStr += ',bold:' + (isBold ? 'true' : 'false');
+            formatStr += '}';
+            out += formatStr;
+        }
         
         return out;
     }
@@ -125,12 +147,15 @@
 
         for(var i = 0; i < chs.length; i++) {
             if(chs[i] == "\r") continue;
+            
             if(chs[i] == "\n") {
                 elements.push("{Next:1b}");
             } else if(chs[i] == "%") {
                 var extra = Attribute(chs, i + 1);
-                while(i < chs.length && chs[i+1] != "%") i++;
-                i += 2; // skip the closing %
+                i++; // skip the start %
+                while(i < chs.length && chs[i] != "%") i++;
+                i++; // move to the character after the end %
+                
                 if(i < chs.length) {
                     var charVal = chs[i] == "\"" ? "\\\"" : chs[i];
                     elements.push(`{Char:"${charVal}",Length:${GetLen(chs[i])}${extra ? "," + extra : ""}}`);
@@ -145,5 +170,6 @@
         return out;
     }
 </script>
+
 </body>
 </html>
